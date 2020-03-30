@@ -7,6 +7,10 @@ as dependencies in other projects.
 A good use case for this tool is distributing private standalone python packages or command line tools 
 easily with the inherent security of the AWS CLI.
 
+## Dependencies
+ * Python (with pip installed)
+ * [AWS CLI](https://docs.aws.amazon.com/cli/index.html)
+
 ## Installation
 
 ```bash
