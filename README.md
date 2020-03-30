@@ -38,7 +38,7 @@ s3pypkg mypkg@1.0.0
 
 ### Publish a package
 
-Publish a package on your system to your S3 bucket by supplying the path to the gzipped python package. This can easily be generated with tools like [Poetry](https://python-poetry.org/) (`poetry build`) or with a setup file (`python setup.py sdist`).
+Publish a package on your system to your S3 bucket by supplying the path to the gzipped python package. This can easily be generated with tools like [Poetry](https://python-poetry.org/) (`poetry build`) or with a setuptools (`python setup.py sdist`).
 ```bash
 s3pypkg --publish ./dist/mypkg-1.0.0.tar.gz
 ```
