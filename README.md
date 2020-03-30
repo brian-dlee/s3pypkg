@@ -1,6 +1,6 @@
 # s3pypkg
 
-A small bash script to install/publish python packages to S3. 
+A small bash script to install packages stored in S3 or publish python packages to S3.
 It uses pip for installation so dependency management is intact, but this is unsufficient for including packages
 as dependencies in other projects.
 
