@@ -8,8 +8,9 @@ A good use case for this tool is distributing private standalone python packages
 easily with the inherent security of the AWS CLI.
 
 ## Dependencies
- * Python (with pip installed)
- * [AWS CLI](https://docs.aws.amazon.com/cli/index.html)
+ * Python
+ * Pip
+ * AWS CLI - https://docs.aws.amazon.com/cli/index.html
 
 ## Installation
 
