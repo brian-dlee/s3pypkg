@@ -130,6 +130,7 @@ while [[ $# -gt 0 ]]; do
         -u|--publish) PUBLISH=1;;
         -o|--overwrite) OVERWRITE=1;;
         -h|--help) help; exit;;
+        -*) echo "Unkown option supplied: $1" >&2; exit 1;;
         *) args+=($1);;
     esac
     shift
