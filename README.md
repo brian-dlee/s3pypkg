@@ -4,8 +4,8 @@ A small bash script to install packages stored in S3 or publish python packages 
 It uses pip for installation so dependency management is intact, but this is unsufficient for including packages
 as dependencies in other projects.
 
-I use this to distribute private standalone python packages or command line tools easily with the security of the
-AWS CLI.
+A good use case for this tool is distributing private standalone python packages or command line tools 
+easily with the inherent security of the AWS CLI.
 
 ## Installation
 
