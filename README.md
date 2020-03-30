@@ -22,7 +22,7 @@ The configuration file generated will be at `~/.s3pypkg.yml`
 
 ## Usage
 
-For full usage, run `s3pypkg -h`.
+For full usage, run `s3pypkg --help`.
 
 ### Install a package
 
