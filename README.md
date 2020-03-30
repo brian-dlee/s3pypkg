@@ -15,9 +15,9 @@ easily with the inherent security of the AWS CLI.
 ## Installation
 
 ```bash
-curl -L https://github.com/brian-dlee/s3pypkg/blob/master/install-s3pypkg.sh | bash
+curl -L https://raw.githubusercontent.com/brian-dlee/s3pypkg/master/install-s3pypkg.sh | bash
 # or
-curl -L https://github.com/brian-dlee/s3pypkg/blob/master/install-s3pypkg.sh | INSTALL_PREFIX=/home/auserhasnoname/.local/bin bash
+curl -L https://raw.githubusercontent.com/brian-dlee/s3pypkg/master/install-s3pypkg.sh | INSTALL_PREFIX=/home/auserhasnoname/.local/bin bash
 ```
 
 ## Configuration
