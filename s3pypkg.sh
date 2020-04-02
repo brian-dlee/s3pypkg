@@ -104,7 +104,7 @@ function self_update {
     mkdir $tmp
     trap "rm -rf \$tmp >/dev/null 2>&1" EXIT
 
-    curl -L "$INSTALL_SRC" | INSTALL_PREFIX=$tmp bash
+    curl -H 'Cache-Control: no-cache' -L "$INSTALL_SRC" | INSTALL_PREFIX=$tmp bash
     
     local code=${PIPESTATUS[1]}
     local destination="$tmp/$(ls "$tmp" | head)"
