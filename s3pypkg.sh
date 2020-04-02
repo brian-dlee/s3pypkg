@@ -166,8 +166,10 @@ if [[ ${#args[@]} -eq 0 && -z $FILE ]]; then
 fi
 
 if [[ -n $AWS_PROFILE ]]; then
-    echo "Setting $AWS_PROFILE as default AWS profile in ~/.s3pypkg.yml"
-    S3PYPKG_CONF_default_aws_profile=$AWS_PROFILE
+    if [[ -z $S3PYPKG_CONF_default_aws_profile || -n $SET_DEFAULTS ]]; then
+        echo "Setting $AWS_PROFILE as default AWS profile in ~/.s3pypkg.yml"
+        S3PYPKG_CONF_default_aws_profile=$AWS_PROFILE
+    fi
     export AWS_PROFILE=$AWS_PROFILE
 fi
 
