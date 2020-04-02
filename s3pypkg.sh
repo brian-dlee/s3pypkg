@@ -11,6 +11,8 @@ PUBLISH=
 OVERWRITE=
 SET_DEFAULTS=
 FILE=
+AWS_PROFILE=
+PIP_ARGS=
 
 # https://gist.github.com/masukomi/e587aa6fd4f042496871
 function parse_yaml {
@@ -33,7 +35,7 @@ function parse_yaml {
 function get_version_path {
     local bucket=$1
     local name=$2
-    local version=$3
+    local requested_version=$3
     local objects=($(aws s3 ls --recursive "s3://$bucket/$name/" | egrep -E "$name-\d+\.\d+\.\d+\.tar.gz" | awk '{ print $4 }'))
 
     declare -A version_to_object
@@ -43,15 +45,15 @@ function get_version_path {
         version_to_object[$version_number]=$o
     done
 
-    ordered=$(echo "${!version_to_object[@]}" | sort -n)
+    ordered=($(echo "${!version_to_object[@]}" | sort -n))
 
-    if [[ $version == "latest" && ${#objects[@]} -gt 0 ]]; then
+    if [[ $requested_version == "latest" && ${#ordered[@]} -gt 0 ]]; then
         echo "s3://$bucket/${version_to_object[${ordered[-1]}]}"
     else
         for o in $ordered; do
             object=${version_to_object[$o]}
             case $object in
-                $name/$name-$version.tar.gz) echo "s3://$bucket/$name/$object"; return 0;;
+                $name/$name-$version.tar.gz) echo "s3://$bucket/$object"; return 0;;
             esac
         done
     fi
@@ -62,6 +64,7 @@ function install {
     local bucket=$2
     local name=$3
     local version=$4
+    local pip_args=$5
     local path=$(get_version_path $bucket $name $version)
 
     if [[ -z $path ]]; then
@@ -78,7 +81,7 @@ function install {
     mkdir "$tmp"
     trap "rm -rf \"\$tmp\"" EXIT
     aws s3 cp "$path" "$tmp/$(basename $path)"
-    "$python" -m pip install "$tmp/$(basename $path)"
+    "$python" -m pip "$pip_args" install "$tmp/$(basename $path)"
 }
 
 function publish {
@@ -103,7 +106,7 @@ cat <<EOF
 Install python packages stored in AWS S3
 
 Automatically creates and stores configuration data containing a default S3 bucket and default python interpreter in ~/.s3pypkg.yml.
-The first time --bucket and --python are supplied they will be stored in the
+The first time --bucket, --python, and --aws-profile are supplied they will be stored for future use.
 
 Usage: s3pypkg [OPTIONS] <PKG_OR_ARCHIVE> [<PKG_OR_ARCHIVE>...]
 
@@ -111,10 +114,12 @@ OPTIONS:
     -b|--bucket <S3_BUCKET_NAME>      Retrieve packages from the provided S3 Bucket
     -p|--python <PYTHON_INTERPRETER>  Use the provided Python executable when installing the python package - must have pip installed
     -u|--publish                      Publish the provided compiled python package (.tar.gz) file(s) to S3
-    -f|--file                         Read PKG_OR_ARCHIVE from file
+    -f|--file <FILE>                  Read PKG_OR_ARCHIVE from file
     -d|--set-defaults                 Use the currently provided args to reset the defaults in the configuration file
     -o|--overwrite                    Overwrite an existing package in S3
     -U|--self-update                  Install that latest version of s3pypkg and exit
+    -P|--pip-args <PIP_ARGS>          String of arguments to be passed to pip during installation
+    -a|--aws-profile  <AWS_PROFILE>   AWS profile identifier to use when invoking the AWS CLI
     -h|--help
     
 ARGUMENTS:
@@ -134,6 +139,7 @@ fi
 eval $(parse_yaml ~/.s3pypkg.yml S3PYPKG_CONF_)
 PYTHON=$S3PYPKG_CONF_default_python
 BUCKET=$S3PYPKG_CONF_default_s3_bucket
+AWS_PROFILE=$S3PYPKG_CONF_default_aws_profile
 
 args=()
 while [[ $# -gt 0 ]]; do
@@ -145,6 +151,8 @@ while [[ $# -gt 0 ]]; do
         -o|--overwrite) OVERWRITE=1;;
         -f|--file) shift; FILE=$1;;
         -U|--self-update) curl -L "$INSTALL_SRC" | bash; exit ${PIPESTATUS[1]};;
+        -P|--pip-args) shift; PIP_ARGS=$1;;
+        -a|--aws-profile) shift; AWS_PROFILE=$1;;
         -h|--help) help; exit;;
         -*) echo "Unkown option supplied: $1" >&2; exit 1;;
         *) args+=($1);;
@@ -155,6 +163,14 @@ done
 if [[ ${#args[@]} -eq 0 && -z $FILE ]]; then
    help;
    exit 1;
+fi
+
+if [[ -n $AWS_PROFILE ]]; then
+    if [[ -z $S3PYPKG_CONF_default_aws_profile || -n $SET_DEFAULTS ]]; then
+        echo "Setting $AWS_PROFILE as default AWS profile in ~/.s3pypkg.yml"
+        S3PYPKG_CONF_default_aws_profile=$AWS_PROFILE
+    fi
+    export AWS_PROFILE=$AWS_PROFILE
 fi
 
 if [[ -n $PYTHON && (-z $S3PYPKG_CONF_default_python || -n $SET_DEFAULTS) ]]; then
@@ -176,6 +192,7 @@ cat >~/.s3pypkg.yml <<EOF
 default:
   python: $S3PYPKG_CONF_default_python
   s3_bucket: $S3PYPKG_CONF_default_s3_bucket
+  aws_profile: $S3PYPKG_CONF_default_aws_profile
 
 EOF
 
@@ -205,7 +222,7 @@ for arg in "${args[@]}"; do
             echo "Cannot install: failed to parse $arg" >&2
             exit 1
         fi
-        install "${PYTHON:-python}" "$BUCKET" "${parts[0]}" "${parts[1]:-latest}"
+        install "${PYTHON:-python}" "$BUCKET" "${parts[0]}" "${parts[1]:-latest}" "$PIP_ARGS"
     else
         if [[ $(grep -E '^[-_A-Za-z0-9]+-[0-9]+\.[0-9]+\.[0-9]+\.tar\.gz$' >/dev/null <<<$(basename "$arg") | wc -l) -gt 0 ]]; then
             echo "Refusing to publish: $arg should be a path to a compiled/gzipped Python package." >&2
