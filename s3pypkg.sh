@@ -106,7 +106,7 @@ cat <<EOF
 Install python packages stored in AWS S3
 
 Automatically creates and stores configuration data containing a default S3 bucket and default python interpreter in ~/.s3pypkg.yml.
-The first time --bucket, --python, and --profile are supplied they will be stored for future use.
+The first time --bucket, --python, and --aws-profile are supplied they will be stored for future use.
 
 Usage: s3pypkg [OPTIONS] <PKG_OR_ARCHIVE> [<PKG_OR_ARCHIVE>...]
 
