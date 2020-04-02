@@ -112,6 +112,7 @@ OPTIONS:
     -f|--file                         Read PKG_OR_ARCHIVE from file
     -d|--set-defaults                 Use the currently provided args to reset the defaults in the configuration file
     -o|--overwrite                    Overwrite an existing package in S3
+    -U|--self-update                  Install that latest version of s3pypkg and exit
     -h|--help
     
 ARGUMENTS:
@@ -141,6 +142,7 @@ while [[ $# -gt 0 ]]; do
         -u|--publish) PUBLISH=1;;
         -o|--overwrite) OVERWRITE=1;;
         -f|--file) shift; FILE=$1;;
+        -U|--self-update) curl -L https://raw.githubusercontent.com/brian-dlee/s3pypkg/master/install-s3pypkg.sh | bash; exit ${PIPESTATUS[1]};;
         -h|--help) help; exit;;
         -*) echo "Unkown option supplied: $1" >&2; exit 1;;
         *) args+=($1);;
