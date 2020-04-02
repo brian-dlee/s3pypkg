@@ -37,33 +37,19 @@ function get_version_path {
     local name=$2
     local requested_version=$3
     
-    declare -A version_to_object
-
     echo "Reading available packages from s3://$bucket/$name" >&2
-    local objects=($(aws s3 ls --recursive "s3://$bucket/$name/" | egrep -E "$name-\d+\.\d+\.\d+\.tar.gz" | awk '{ print $4 }'))
+    local objects=($(aws s3 ls --recursive "s3://$bucket/$name/" | sort -r --version-sort))
     for o in ${objects[@]}; do
-        version=$(echo $(basename "$o") | sed -E -e 's/.tar.gz$//' -e 's/^'"$name"'-//')
-        version_number=$(printf "%03d" $(echo $version | sed 's/\./ /g'))
-        version_to_object[$version_number]=$o
-        echo " - [$version_number] $o" >&2
+        echo " - $o" >&2
     done
     echo "" >&2
 
-    ordered=($(echo "${!version_to_object[@]}" | sort -n))
-
-    echo "Package versions available for $name:" >&2
-    for o in ${ordered[@]}; do
-        echo " - ${version_to_object[$o]}" >&2
-    done
-    echo "" >&2
-
-    if [[ $requested_version == "latest" && ${#ordered[@]} -gt 0 ]]; then
-        echo "s3://$bucket/${version_to_object[${ordered[0]}]}"
+    if [[ $requested_version == "latest" && ${#objects[@]} -gt 0 ]]; then
+        echo "s3://$bucket/${objects[0]}"
     else
-        for o in $ordered; do
-            object=${version_to_object[$o]}
-            case $object in
-                $name/$name-$version.tar.gz) echo "s3://$bucket/$object"; return 0;;
+        for o in $objects; do
+            case $o in
+                $name/$name-$version.tar.gz) echo "s3://$bucket/$o"; return 0;;
             esac
         done
     fi
