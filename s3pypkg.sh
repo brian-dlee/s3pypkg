@@ -46,7 +46,7 @@ function get_version_path {
     ordered=$(echo "${!version_to_object[@]}" | sort -n)
 
     if [[ $version == "latest" && ${#objects[@]} -gt 0 ]]; then
-        echo "s3://$bucket/$name/${version_to_object[${ordered[-1]}]}"
+        echo "s3://$bucket/${version_to_object[${ordered[-1]}]}"
     else
         for o in $ordered; do
             object=${version_to_object[$o]}
