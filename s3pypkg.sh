@@ -36,20 +36,24 @@ function get_version_path {
     local bucket=$1
     local name=$2
     local requested_version=$3
-    local objects=($(aws s3 ls --recursive "s3://$bucket/$name/" | egrep -E "$name-\d+\.\d+\.\d+\.tar.gz" | awk '{ print $4 }'))
-
+    
     declare -A version_to_object
+
+    echo "Reading available packages from s3://$bucket/$name" >&2
+    local objects=($(aws s3 ls --recursive "s3://$bucket/$name/" | egrep -E "$name-\d+\.\d+\.\d+\.tar.gz" | awk '{ print $4 }'))
     for o in ${objects[@]}; do
         version=$(echo $(basename "$o") | sed -E -e 's/.tar.gz$//' -e 's/^'"$name"'-//')
         version_number=$(printf "%03d" $(echo $version | sed 's/\./ /g'))
         version_to_object[$version_number]=$o
+        echo " - [$version_number] $o" >&2
     done
+    echo "" >&2
 
     ordered=($(echo "${!version_to_object[@]}" | sort -n))
 
-    echo "Packages versions available for $name:" >&2
+    echo "Package versions available for $name:" >&2
     for o in ${ordered[@]}; do
-        echo " - $o -> ${version_to_object[${ordered[0]}]}" >&2
+        echo " - ${version_to_object[${ordered[0]}]}" >&2
     done
     echo "" >&2
 
