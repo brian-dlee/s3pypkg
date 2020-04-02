@@ -29,11 +29,28 @@ The configuration file generated will be at `~/.s3pypkg.yml`
 
 For full usage, run `s3pypkg --help`.
 
+### Updating the tool
+
+Execute the self update command, run `s3pypkg --self-update`
+
 ### Install a package
 
 Install a package in your S3 bucket by supplying the package name with optional version separated by `@`.
 ```bash
 s3pypkg mypkg@1.0.0
+```
+
+### Using a dependency file
+
+Write your file
+```bash
+# dependency.txt
+mypkg@1.0.0
+```
+
+Install a package in your S3 bucket by supplying a file of packages
+```bash
+s3pypkg -f dependency.txt
 ```
 
 ### Publish a package
