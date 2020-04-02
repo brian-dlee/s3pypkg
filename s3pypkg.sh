@@ -2,6 +2,8 @@
 
 set -e
 
+INSTALL_SRC=${INSTALL_SRC:-https://raw.githubusercontent.com/brian-dlee/s3pypkg/master/install-s3pypkg.sh}
+
 ## OPTIONS
 BUCKET=
 PYTHON=
@@ -142,7 +144,7 @@ while [[ $# -gt 0 ]]; do
         -u|--publish) PUBLISH=1;;
         -o|--overwrite) OVERWRITE=1;;
         -f|--file) shift; FILE=$1;;
-        -U|--self-update) curl -L https://raw.githubusercontent.com/brian-dlee/s3pypkg/master/install-s3pypkg.sh | bash; exit ${PIPESTATUS[1]};;
+        -U|--self-update) curl -L "$INSTALL_SRC" | bash; exit ${PIPESTATUS[1]};;
         -h|--help) help; exit;;
         -*) echo "Unkown option supplied: $1" >&2; exit 1;;
         *) args+=($1);;
