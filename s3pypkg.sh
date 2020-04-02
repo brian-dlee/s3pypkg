@@ -81,7 +81,7 @@ function install {
     mkdir "$tmp"
     trap "rm -rf \"\$tmp\"" EXIT
     aws s3 cp "$path" "$tmp/$(basename $path)"
-    "$python" -m pip "$pip_args" install "$tmp/$(basename $path)"
+    "$python" -m pip $pip_args install "$tmp/$(basename $path)"
 }
 
 function publish {
