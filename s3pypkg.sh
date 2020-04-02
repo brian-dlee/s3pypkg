@@ -47,6 +47,12 @@ function get_version_path {
 
     ordered=($(echo "${!version_to_object[@]}" | sort -n))
 
+    echo "Packages versions available for $name:" >&2
+    for o in ${ordered[@]}; do
+        echo " - $o -> ${version_to_object[${ordered[0]}]}" >&2
+    done
+    echo "" >&2
+
     if [[ $requested_version == "latest" && ${#ordered[@]} -gt 0 ]]; then
         echo "s3://$bucket/${version_to_object[${ordered[0]}]}"
     else
