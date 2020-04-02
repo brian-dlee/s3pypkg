@@ -114,12 +114,12 @@ OPTIONS:
     -b|--bucket <S3_BUCKET_NAME>      Retrieve packages from the provided S3 Bucket
     -p|--python <PYTHON_INTERPRETER>  Use the provided Python executable when installing the python package - must have pip installed
     -u|--publish                      Publish the provided compiled python package (.tar.gz) file(s) to S3
-    -f|--file                         Read PKG_OR_ARCHIVE from file
+    -f|--file <FILE>                  Read PKG_OR_ARCHIVE from file
     -d|--set-defaults                 Use the currently provided args to reset the defaults in the configuration file
     -o|--overwrite                    Overwrite an existing package in S3
     -U|--self-update                  Install that latest version of s3pypkg and exit
-    -P|--pip-args                     String of arguments to be passed to pip during installation
-    -a|--aws-profile                  AWS profile identifier to use when invoking the AWS CLI
+    -P|--pip-args <PIP_ARGS>          String of arguments to be passed to pip during installation
+    -a|--aws-profile  <AWS_PROFILE>   AWS profile identifier to use when invoking the AWS CLI
     -h|--help
     
 ARGUMENTS:
