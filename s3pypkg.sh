@@ -8,6 +8,7 @@ PYTHON=
 PUBLISH=
 OVERWRITE=
 SET_DEFAULTS=
+FILE=
 
 # https://gist.github.com/masukomi/e587aa6fd4f042496871
 function parse_yaml {
@@ -31,16 +32,25 @@ function get_version_path {
     local bucket=$1
     local name=$2
     local version=$3
-    local objects=($(aws s3 ls "s3://$bucket/$name/" | awk '{ print $4 }'))
+    local objects=($(aws s3 ls --recursive "s3://$bucket/$name/" | egrep -E "$name-\d+\.\d+\.\d+\.tar.gz" | awk '{ print $4 }'))
+
+    declare -A version_to_object
+    for o in ${objects[@]}; do
+        version=$(echo $(basename "$o") | sed -E -e 's/.tar.gz$//' -e 's/^'"$name"'-//')
+        version_number=$(printf "%03d" $(echo $version | sed 's/\./ /g'))
+        version_to_object[$version_number]=$o
+    done
+
+    ordered=$(echo "${!version_to_object[@]}" | sort -n)
 
     if [[ $version == "latest" && ${#objects[@]} -gt 0 ]]; then
-        echo "s3://$bucket/$name/${objects[-1]}"
+        echo "s3://$bucket/$name/${version_to_object[${ordered[-1]}]}"
     else
-        for object in "${objects[@]}"; do
-            if [[ $object == "$name-$version.tar.gz" ]]; then
-                echo "s3://$bucket/$name/$object"
-                return 0
-            fi
+        for o in $ordered; do
+            object=${version_to_object[$o]}
+            case $object in
+                $name/$name-$version.tar.gz) echo "s3://$bucket/$name/$object"; return 0;;
+            esac
         done
     fi
 }
@@ -99,6 +109,7 @@ OPTIONS:
     -b|--bucket <S3_BUCKET_NAME>      Retrieve packages from the provided S3 Bucket
     -p|--python <PYTHON_INTERPRETER>  Use the provided Python executable when installing the python package - must have pip installed
     -u|--publish                      Publish the provided compiled python package (.tar.gz) file(s) to S3
+    -f|--file                         Read PKG_OR_ARCHIVE from file
     -d|--set-defaults                 Use the currently provided args to reset the defaults in the configuration file
     -o|--overwrite                    Overwrite an existing package in S3
     -h|--help
@@ -107,7 +118,7 @@ ARGUMENTS:
     PKG_OR_ARCHIVE:  
         If installing (default), the package identifier. Of the form: <name>, <name>@latest, or <name>@<version>
             name:     Allowed symbols include alphanumeric, -, and _
-            version:  Basic semantic version. e.g. 0.0.0
+            version:  Basic semantic version e.g. 0.0.0; the wildcard symbol * is supported and when wildcard is supplied the highest matching version will be selected
         If publishing (--publish), the path to a compiled python package (.tar.gz) file
 
 EOF
@@ -129,6 +140,7 @@ while [[ $# -gt 0 ]]; do
         -d|--set-default) SET_DEFAULTS=1;;
         -u|--publish) PUBLISH=1;;
         -o|--overwrite) OVERWRITE=1;;
+        -f|--file) shift; FILE=$1;;
         -h|--help) help; exit;;
         -*) echo "Unkown option supplied: $1" >&2; exit 1;;
         *) args+=($1);;
@@ -136,7 +148,7 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 
-if [[ ${#args[@]} -eq 0 ]]; then
+if [[ ${#args[@]} -eq 0 && -z $FILE ]]; then
    help;
    exit 1;
 fi
@@ -163,13 +175,28 @@ default:
 
 EOF
 
+if [[ -n $FILE ]]; then
+    if [[ ! -e $FILE ]]; then
+        echo "File not found: $FILE" >&2
+        exit 1
+    fi
+    if [[ -n $PUBLISH ]]; then
+        echo "The option --publish is incompatible with --file" >&2
+        exit 1
+    fi
+    if [[ ${#args[@]} -gt 0 ]]; then
+        echo "Ignoring command line arguments since --file was provided" >&2
+    fi
+    args=($(cat $FILE))
+fi
+
 for arg in "${args[@]}"; do
     if [[ -z $PUBLISH ]]; then
-        if [[ $(grep -E '^[-_A-Za-z0-9]+(@([0-9]+\.[0-9]+\.[0-9]+|latest))?$' >/dev/null <<<$arg | wc -l) -gt 0 ]]; then
+        if [[ $(grep -E '^[-_A-Za-z0-9]+(@([0-9]+\.([0-9]+|\*)\.([0-9]+|\*)|latest))?$' >/dev/null <<<$arg | wc -l) -gt 0 ]]; then
             echo "Cannot install: $arg is not correctly formatted" >&2
             exit 1
         fi
-        parts=$(IFS='@' parts=("$arg") && echo ${parts[@]})
+        parts=($(IFS='@' parts=("$arg") && echo ${parts[@]}))
         if [[ -z ${parts[0]} ]]; then
             echo "Cannot install: failed to parse $arg" >&2
             exit 1
