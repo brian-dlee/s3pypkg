@@ -101,6 +101,26 @@ function publish {
     aws s3 cp "$path" "s3://$bucket/$name/$name-$version.tar.gz"
 }
 
+function self_update {
+    local current_install_path=$(cd "$(dirname $0)" && pwd)
+    local tmp=$(cd "${TMPDIR:-/tmp}" && pwd)/$(date +%s)
+
+    mkdir $tmp
+    trap "rm -rf \$tmp >/dev/null 2>&1" EXIT
+
+    curl -L "$INSTALL_SRC" | INSTALL_PREFIX=$tmp bash
+    
+    local code=${PIPESTATUS[1]}
+    local destination="$tmp/$(ls "$tmp" | head)"
+
+    if [[ $code -eq 0 && -e "$destination" ]]; then
+        mv -v "$destination" "$0"
+        return 0
+    fi
+
+    return $code
+}
+
 function help {
 cat <<EOF
 Install python packages stored in AWS S3
@@ -150,7 +170,7 @@ while [[ $# -gt 0 ]]; do
         -u|--publish) PUBLISH=1;;
         -o|--overwrite) OVERWRITE=1;;
         -f|--file) shift; FILE=$1;;
-        -U|--self-update) curl -L "$INSTALL_SRC" | bash; exit ${PIPESTATUS[1]};;
+        -U|--self-update) self_update; exit $?;;
         -P|--pip-args) shift; PIP_ARGS=$1;;
         -a|--aws-profile) shift; AWS_PROFILE=$1;;
         -h|--help) help; exit;;
