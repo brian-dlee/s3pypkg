@@ -53,7 +53,7 @@ function get_version_path {
 
     echo "Package versions available for $name:" >&2
     for o in ${ordered[@]}; do
-        echo " - ${version_to_object[${ordered[0]}]}" >&2
+        echo " - ${version_to_object[$o]}" >&2
     done
     echo "" >&2
 
