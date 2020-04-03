@@ -38,7 +38,7 @@ function get_version_path {
     local requested_version=$3
     
     echo "Reading available packages from s3://$bucket/$name" >&2
-    local objects=($(aws s3 ls --recursive "s3://$bucket/$name/" | sort -r --version-sort))
+    local objects=($(aws s3 ls --recursive "s3://$bucket/$name/" | aws '{ print $4 }' | sort -r --version-sort))
     for o in ${objects[@]}; do
         echo " - $o" >&2
     done
