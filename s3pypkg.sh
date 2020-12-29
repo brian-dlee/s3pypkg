@@ -36,7 +36,7 @@ function get_version_path {
     local bucket=$1
     local name=$2
     local requested_version=$3
-    
+
     echo "Reading available packages from s3://$bucket/$name" >&2
     local objects=($(aws s3 ls --recursive "s3://$bucket/$name/" | awk '{ print $4 }' | sort -r --version-sort))
     for o in ${objects[@]}; do
@@ -77,7 +77,7 @@ function install {
     mkdir "$tmp"
     trap "rm -rf \"\$tmp\"" EXIT
     aws s3 cp "$path" "$tmp/$(basename $path)"
-    "$python" -m pip $pip_args install "$tmp/$(basename $path)"
+    "$python" -m pip install --upgrade $pip_args "$tmp/$(basename $path)"
 }
 
 function publish {
@@ -105,7 +105,7 @@ function self_update {
     trap "rm -rf \$tmp >/dev/null 2>&1" EXIT
 
     curl -H 'Cache-Control: no-cache' -L "$INSTALL_SRC" | INSTALL_PREFIX=$tmp bash
-    
+
     local code=${PIPESTATUS[1]}
     local destination="$tmp/$(ls "$tmp" | head)"
 
@@ -137,9 +137,9 @@ OPTIONS:
     -P|--pip-args <PIP_ARGS>          String of arguments to be passed to pip during installation
     -a|--aws-profile  <AWS_PROFILE>   AWS profile identifier to use when invoking the AWS CLI
     -h|--help
-    
+
 ARGUMENTS:
-    PKG_OR_ARCHIVE:  
+    PKG_OR_ARCHIVE:
         If installing (default), the package identifier. Of the form: <name>, <name>@latest, or <name>@<version>
             name:     Allowed symbols include alphanumeric, -, and _
             version:  Basic semantic version e.g. 0.0.0; the wildcard symbol * is supported and when wildcard is supplied the highest matching version will be selected
@@ -155,6 +155,7 @@ fi
 eval $(parse_yaml ~/.s3pypkg.yml S3PYPKG_CONF_)
 PYTHON=$S3PYPKG_CONF_default_python
 BUCKET=$S3PYPKG_CONF_default_s3_bucket
+PIP_ARGS=$S3PYPKG_CONF_default_pip_args
 AWS_PROFILE=$S3PYPKG_CONF_default_aws_profile
 
 args=()
@@ -181,6 +182,14 @@ if [[ ${#args[@]} -eq 0 && -z $FILE ]]; then
    exit 1;
 fi
 
+if [[ -n "$PIP_ARGS" ]]; then
+    if [[ -z $S3PYPKG_CONF_default_pip_args || -n $SET_DEFAULTS ]]; then
+        echo "Setting $PIP_ARGS as default pip arguments in ~/.s3pypkg.yml"
+        S3PYPKG_CONF_default_pip_args=$PIP_ARGS
+    fi
+    export PIP_ARGS=$PIP_ARGS
+fi
+
 if [[ -n $AWS_PROFILE ]]; then
     if [[ -z $S3PYPKG_CONF_default_aws_profile || -n $SET_DEFAULTS ]]; then
         echo "Setting $AWS_PROFILE as default AWS profile in ~/.s3pypkg.yml"
@@ -203,12 +212,13 @@ if [[ -z $S3PYPKG_CONF_default_s3_bucket || -n $SET_DEFAULTS ]]; then
     echo "Setting $BUCKET as default bucket in ~/.s3pypkg.yml"
     S3PYPKG_CONF_default_s3_bucket=$BUCKET
 fi
-    
+
 cat >~/.s3pypkg.yml <<EOF
 default:
   python: $S3PYPKG_CONF_default_python
   s3_bucket: $S3PYPKG_CONF_default_s3_bucket
   aws_profile: $S3PYPKG_CONF_default_aws_profile
+  pip_args: $S3PYPKG_CONF_default_pip_args
 
 EOF
 
