@@ -47,7 +47,7 @@ function get_version_path {
     if [[ $requested_version == "latest" && ${#objects[@]} -gt 0 ]]; then
         echo "s3://$bucket/${objects[0]}"
     else
-        for o in $objects; do
+        for o in ${objects[@]}; do
             case $o in
                 $name/$name-$version.tar.gz) echo "s3://$bucket/$o"; return 0;;
             esac
