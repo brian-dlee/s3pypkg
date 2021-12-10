@@ -9,6 +9,7 @@ BUCKET=
 PYTHON=
 PUBLISH=
 OVERWRITE=
+DOWNLOAD=
 SET_DEFAULTS=
 FILE=
 AWS_PROFILE=
@@ -61,6 +62,7 @@ function install {
     local name=$3
     local version=$4
     local pip_args=$5
+    local download=$6
     local path=$(get_version_path $bucket $name $version)
 
     if [[ -z $path ]]; then
@@ -76,8 +78,12 @@ function install {
     tmp=/tmp/$(date +%s)
     mkdir "$tmp"
     trap "rm -rf \"\$tmp\"" EXIT
-    aws s3 cp "$path" "$tmp/$(basename $path)"
-    "$python" -m pip install --upgrade $pip_args "$tmp/$(basename $path)"
+    if [[ ! -z "$download" ]]; then
+      aws s3 cp "$path" "$download/$(basename $path)"
+    else
+      aws s3 cp "$path" "$tmp/$(basename $path)"
+      "$python" -m pip install --upgrade $pip_args "$tmp/$(basename $path)"
+    fi
 }
 
 function publish {
@@ -134,6 +140,7 @@ OPTIONS:
     -d|--set-defaults                 Use the currently provided args to reset the defaults in the configuration file
     -o|--overwrite                    Overwrite an existing package in S3
     -U|--self-update                  Install that latest version of s3pypkg and exit
+    -D|--download <PATH>              Download the packages to this path instead of installling them
     -P|--pip-args <PIP_ARGS>          String of arguments to be passed to pip during installation
     -a|--aws-profile  <AWS_PROFILE>   AWS profile identifier to use when invoking the AWS CLI
     -h|--help
@@ -168,6 +175,7 @@ while [[ $# -gt 0 ]]; do
         -o|--overwrite) OVERWRITE=1;;
         -f|--file) shift; FILE=$1;;
         -U|--self-update) self_update; exit $?;;
+        -D|--download) shift; DOWNLOAD=$1;;
         -P|--pip-args) shift; PIP_ARGS=$1;;
         -a|--aws-profile) shift; AWS_PROFILE=$1;;
         -h|--help) help; exit;;
@@ -248,7 +256,7 @@ for arg in "${args[@]}"; do
             echo "Cannot install: failed to parse $arg" >&2
             exit 1
         fi
-        install "${PYTHON:-python}" "$BUCKET" "${parts[0]}" "${parts[1]:-latest}" "$PIP_ARGS"
+        install "${PYTHON:-python}" "$BUCKET" "${parts[0]}" "${parts[1]:-latest}" "$PIP_ARGS" "$DOWNLOAD"
     else
         if [[ $(grep -E '^[-_A-Za-z0-9]+-[0-9]+\.[0-9]+\.[0-9]+\.tar\.gz$' >/dev/null <<<$(basename "$arg") | wc -l) -gt 0 ]]; then
             echo "Refusing to publish: $arg should be a path to a compiled/gzipped Python package." >&2
